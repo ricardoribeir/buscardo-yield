@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body>
+    <div id="yield">0.00</div>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        // Pega o fundo da URL (ex: ?fundo=MXRF11) ou usa MXRF11 como padrão
+        const ticker = (urlParams.get('fundo') || "MXRF11").toUpperCase().trim();
+        const token = "7u35ZZRvfiJtraYbasjMrr";
+
+        // Montagem da URL usando concatenação simples (+) para evitar erro de crases/chaves
+        const url = "https://brapi.dev" + ticker + "?token=" + token + "&fundamental=true";
+
+        console.log("Tentando acessar:", url);
+
+        fetch(url)
+            .then(res => res.json())
+            .then(json => {
+                if (json.results && json.results.length > 0) {
+                    const ativo = json.results[0]; // ACESSA O ÍNDICE ZERO DA LISTA
+                    
+                    // Busca o DY nos dois lugares que a Brapi costuma enviar
+                    let dy = ativo.dividendYield || (ativo.defaultStatistics ? ativo.defaultStatistics.yield * 100 : 0);
+                    
+                    // Exibe apenas o número (ex: 12.50) na tela
+                    document.getElementById('yield').innerText = dy.toFixed(2);
+                }
+            })
+            .catch(err => {
+                console.error("Erro:", err);
+                document.getElementById('yield').innerText = "Erro";
+            });
+    </script>
+</body>
+</html>
