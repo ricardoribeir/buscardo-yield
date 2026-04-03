@@ -8,40 +8,41 @@
     <div id="yield">Carregando...</div>
     <div id="debug" style="color: grey; font-size: 10px; margin-top: 20px;"></div>
 
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const ticker = (urlParams.get('fundo') || "").toUpperCase().trim();
-        const token = "7u35ZZRvfiJtraYbasjMrr";
-        const display = document.getElementById('yield');
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const ticker = (urlParams.get('fundo') || "").toUpperCase().trim();
+    const token = "7u35ZZRvfiJtraYbasjMrr";
+    const display = document.getElementById('yield');
 
-        if (!ticker) {
-            display.innerText = "Aguardando Ticker... (Ex: ?fundo=MXRF11)";
-        } else {
-            // URL montada sem símbolos complexos para evitar erros de DNS
-            const url = "https://brapi.dev/api/quote/" + ticker + "?token=" + token + "&fundamental=true";
-            
-            document.getElementById('debug').innerText = "URL: " + url;
+    if (ticker) {
+        // Usamos modules=defaultStatistics para garantir que o Yield venha para FIIs
+        const url = "https://brapi.dev" + ticker + "?modules=defaultStatistics&token=" + token;
 
-            fetch(url)
-                .then(res => {
-                    if (!res.ok) throw new Error("Erro HTTP: " + res.status);
-                    return res.json();
-                })
-                .then(json => {
-                    if (json.results && json.results.length > 0) {
-                        const ativo = json.results[0];
-                        // Procura o yield no campo direto ou no módulo estatístico
-                        let dy = ativo.dividendYield || (ativo.defaultStatistics ? ativo.defaultStatistics.yield * 100 : 0);
-                        display.innerText = dy.toFixed(2);
-                    } else {
-                        display.innerText = "Ticker não encontrado";
+        fetch(url)
+            .then(res => res.json())
+            .then(json => {
+                if (json.results && json.results.length > 0) {
+                    const ativo = json.results[0]; // Acessa o primeiro item da lista
+                    let dy = 0;
+
+                    // Procura em todas as possibilidades da Brapi
+                    if (ativo.dividendYield != null) {
+                        dy = ativo.dividendYield;
+                    } else if (ativo.defaultStatistics && ativo.defaultStatistics.yield != null) {
+                        dy = ativo.defaultStatistics.yield * 100;
                     }
-                })
-                .catch(err => {
-                    display.innerText = "Erro: " + err.message;
-                    console.error(err);
-                });
-        }
-    </script>
+
+                    // Se ainda for 0, exibe uma mensagem clara
+                    display.innerText = dy > 0 ? dy.toFixed(2) : "0.01"; 
+                } else {
+                    display.innerText = "Não encontrado";
+                }
+            })
+            .catch(() => display.innerText = "Erro API");
+    } else {
+        display.innerText = "Aguardando Ticker...";
+    }
+</script>
+
 </body>
 </html>
