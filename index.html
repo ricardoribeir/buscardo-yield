@@ -2,47 +2,44 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <style>body { font-family: sans-serif; font-size: 20px; }</style>
+    <title>Yield API</title>
 </head>
 <body>
-    <div id="yield">Carregando...</div>
-    <div id="debug" style="color: grey; font-size: 10px; margin-top: 20px;"></div>
+    <!-- O Google Sheets vai ler o número dentro desta DIV -->
+    <div id="yield">0.00</div>
 
-  <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const ticker = (urlParams.get('fundo') || "").toUpperCase().trim();
-    const token = "7u35ZZRvfiJtraYbasjMrr";
-    const display = document.getElementById('yield');
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const ticker = (urlParams.get('fundo') || "MXRF11").toUpperCase().trim();
+        const token = "7u35ZZRvfiJtraYbasjMrr";
 
-    if (ticker) {
-        // Usamos modules=defaultStatistics para garantir que o Yield venha para FIIs
-        const url = "https://brapi.dev" + ticker + "?modules=defaultStatistics&token=" + token;
+        // MONTAGEM MANUAL E FORÇADA DA URL (NÃO ALTERE AS BARRAS)
+        const urlFinal = "https://brapi.dev" + ticker + "?token=" + token + "&fundamental=true";
 
-        fetch(url)
-            .then(res => res.json())
+        console.log("URL de Acesso:", urlFinal);
+
+        fetch(urlFinal)
+            .then(res => {
+                if (!res.ok) throw new Error("Erro HTTP: " + res.status);
+                return res.json();
+            })
             .then(json => {
                 if (json.results && json.results.length > 0) {
-                    const ativo = json.results[0]; // Acessa o primeiro item da lista
-                    let dy = 0;
-
-                    // Procura em todas as possibilidades da Brapi
-                    if (ativo.dividendYield != null) {
-                        dy = ativo.dividendYield;
-                    } else if (ativo.defaultStatistics && ativo.defaultStatistics.yield != null) {
-                        dy = ativo.defaultStatistics.yield * 100;
-                    }
-
-                    // Se ainda for 0, exibe uma mensagem clara
-                    display.innerText = dy > 0 ? dy.toFixed(2) : "0.01"; 
+                    const ativo = json.results[0]; // ACESSA O PRIMEIRO ITEM DA LISTA
+                    
+                    // Busca o DY nos dois campos possíveis da Brapi para FIIs
+                    let dy = ativo.dividendYield || (ativo.defaultStatistics ? ativo.defaultStatistics.yield * 100 : 0);
+                    
+                    // Exibe o número com 2 casas decimais (ex: 12.50)
+                    document.getElementById('yield').innerText = dy.toFixed(2);
                 } else {
-                    display.innerText = "Não encontrado";
+                    document.getElementById('yield').innerText = "0.01";
                 }
             })
-            .catch(() => display.innerText = "Erro API");
-    } else {
-        display.innerText = "Aguardando Ticker...";
-    }
-</script>
-
+            .catch(err => {
+                console.error("Erro na Requisição:", err);
+                document.getElementById('yield').innerText = "Erro";
+            });
+    </script>
 </body>
 </html>
